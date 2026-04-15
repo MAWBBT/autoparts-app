@@ -22,7 +22,7 @@ actions_area = st.container()
 
 # --- 3. ВЕРХНЯЯ ЧАСТЬ: ФОРМА ВВОДА (ДЛЯ ТЕЛЕФОНА) ---
 with top_form:
-    with st.expander("➕ ДОБАВИТЬ ПОЗИЦИЮ (Удобно со смартфона)", expanded=True):
+    with st.expander("➕ ДОБАВИТЬ ПОЗИЦИЮ", expanded=True):
         with st.form("mobile_form", clear_on_submit=True):
             f_name = st.text_input("Наименование запчасти *")
             
@@ -165,6 +165,3 @@ with actions_area:
             fn = f"{filename}.xlsx" if filename else f"Накладная_{datetime.now().strftime('%H%M%S')}.xlsx"
             st.success("✅ Файл готов!")
             st.download_button("⬇️ НАЖМИТЕ СЮДА, ЧТОБЫ СОХРАНИТЬ ФАЙЛ", data=file_bytes, file_name=fn, use_container_width=True)
-
-    # Инструкция для пользователя
-    st.info("💡 **Как загрузить в Google Таблицы:** Скачайте файл по кнопке выше, откройте сайт Google Диск (drive.google.com) и просто перетащите файл в окно браузера. Он откроется в формате таблиц со всеми формулами и красивыми рамками!")
