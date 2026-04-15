@@ -6,48 +6,23 @@ from openpyxl.utils import get_column_letter
 from datetime import datetime
 import io
 
-st.set_page_config(page_title="Накладные ИП Хачатур", page_icon="⚙️", layout="wide")
+# --- 1. НАСТРОЙКА СТРАНИЦЫ ---
+st.set_page_config(page_title="Накладные ИП Хачатур", page_icon="📝", layout="wide")
+st.title("📝 Система накладных")
 
-st.title("⚙️ Гибридная система накладных")
-
-# --- ИНИЦИАЛИЗАЦИЯ ПАМЯТИ ---
+# --- 2. ИНИЦИАЛИЗАЦИЯ ПАМЯТИ ---
 if 'main_data' not in st.session_state:
     st.session_state.main_data = pd.DataFrame(columns=["Наименование", "Артикул", "Бренд", "Цена, руб.", "Кол-во"])
 
-# Создаем "контейнеры", чтобы управлять порядком отрисовки на экране.
-# На экране мобильная форма будет СВЕРХУ, а таблица СНИЗУ.
-# Но в коде мы сначала обработаем таблицу, чтобы получить её свежие данные.
-top_mobile_form = st.container()
+top_form = st.container()
 st.markdown("---")
-bottom_pc_table = st.container()
+table_area = st.container()
 st.markdown("---")
-results_container = st.container()
+actions_area = st.container()
 
-# --- НИЖНЯЯ ЧАСТЬ: ПКАШНАЯ ТАБЛИЦА (Обрабатываем первой) ---
-with bottom_pc_table:
-    st.markdown("### 📋 Редактор накладной")
-    st.info("💡 Здесь можно редактировать данные, удалять строки (Delete) или вставлять из Excel (Ctrl+V). Ввод теперь работает плавно!")
-
-    # Кнопка очистки с правильным сбросом памяти таблицы
-    if not st.session_state.main_data.empty:
-        if st.button("🗑️ Очистить всё", type="secondary"):
-            st.session_state.main_data = pd.DataFrame(columns=["Наименование", "Артикул", "Бренд", "Цена, руб.", "Кол-во"])
-            if "main_editor" in st.session_state:
-                del st.session_state["main_editor"] # Удаляем кэш таблицы
-            st.rerun()
-
-    # ВАЖНО: Мы больше не присваиваем st.session_state.main_data = edited_df на каждом шаге.
-    # Это полностью убирает глюк со сбросом фокуса и двойным кликом.
-    edited_df = st.data_editor(
-        st.session_state.main_data,
-        num_rows="dynamic",
-        use_container_width=True,
-        key="main_editor"
-    )
-
-# --- ВЕРХНЯЯ ЧАСТЬ: МОБИЛЬНАЯ ФОРМА ВВОДА ---
-with top_mobile_form:
-    with st.expander("➕ ДОБАВИТЬ НОВУЮ ПОЗИЦИЮ", expanded=True):
+# --- 3. ВЕРХНЯЯ ЧАСТЬ: ФОРМА ВВОДА (ДЛЯ ТЕЛЕФОНА) ---
+with top_form:
+    with st.expander("➕ ДОБАВИТЬ ПОЗИЦИЮ (Удобно со смартфона)", expanded=True):
         with st.form("mobile_form", clear_on_submit=True):
             f_name = st.text_input("Наименование запчасти *")
             
@@ -57,12 +32,13 @@ with top_mobile_form:
             with c3: f_price = st.text_input("Цена (руб.)")
             with c4: f_qty = st.number_input("Кол-во", min_value=1, value=1)
             
-            submit = st.form_submit_button("📥 Добавить в список", use_container_width=True)
+            submit = st.form_submit_button("📥 Добавить в накладную", use_container_width=True)
             
             if submit:
                 if not f_name.strip():
-                    st.error("Введите наименование!")
+                    st.error("Пожалуйста, введите наименование!")
                 else:
+                    # Очистка цены от пробелов и запятых
                     try:
                         p_val = float(f_price.replace(',', '.').replace(' ', '').strip()) if f_price else 0.0
                     except:
@@ -76,31 +52,58 @@ with top_mobile_form:
                         "Кол-во": f_qty
                     }])
                     
-                    # При добавлении берем текущие данные таблицы (edited_df) и плюсуем новую строку
-                    st.session_state.main_data = pd.concat([edited_df, new_row], ignore_index=True)
-                    if "main_editor" in st.session_state:
-                        del st.session_state["main_editor"] # Сбрасываем кэш, чтобы таблица ровно отрисовала новую строку
+                    # Забираем текущие данные из таблицы и добавляем новую строку
+                    current_data = st.session_state.get("main_editor", edited_df if 'edited_df' in locals() else st.session_state.main_data)
+                    st.session_state.main_data = pd.concat([st.session_state.main_data, new_row], ignore_index=True)
+                    
+                    # Сбрасываем кэш таблицы, чтобы она ровно перерисовалась
+                    if "main_editor" in st.session_state: 
+                        del st.session_state["main_editor"]
                     st.rerun()
 
-# --- БЛОК ИТОГОВ И СОХРАНЕНИЯ ---
-with results_container:
-    def to_num(val):
+# --- 4. НИЖНЯЯ ЧАСТЬ: РЕДАКТОР (ДЛЯ ПК / МАССОВОЙ ВСТАВКИ) ---
+with table_area:
+    st.markdown("### 📋 Список добавленных позиций")
+    
+    col_clear, _ = st.columns([1, 4])
+    with col_clear:
+        if not st.session_state.main_data.empty:
+            if st.button("🗑️ Очистить таблицу", type="secondary", use_container_width=True):
+                st.session_state.main_data = pd.DataFrame(columns=["Наименование", "Артикул", "Бренд", "Цена, руб.", "Кол-во"])
+                if "main_editor" in st.session_state: del st.session_state["main_editor"]
+                st.rerun()
+
+    # Сама умная таблица
+    edited_df = st.data_editor(
+        st.session_state.main_data,
+        num_rows="dynamic",
+        use_container_width=True,
+        key="main_editor"
+    )
+    # Синхронизация данных
+    st.session_state.main_data = edited_df
+
+# --- 5. ИТОГИ И ГЕНЕРАЦИЯ EXCEL ---
+with actions_area:
+    def clean_num(val):
         try: return float(str(val).replace(',', '.').replace(' ', ''))
         except: return 0.0
 
     calc_df = edited_df.copy()
-    calc_df['total'] = calc_df['Цена, руб.'].apply(to_num) * calc_df['Кол-во'].apply(to_num)
+    calc_df['total'] = calc_df['Цена, руб.'].apply(clean_num) * calc_df['Кол-во'].apply(clean_num)
     total_sum = calc_df['total'].sum()
     pos_count = len(calc_df[calc_df["Наименование"].astype(str).str.strip() != ""])
 
+    # Красивые счетчики
     m1, m2 = st.columns(2)
-    m1.metric("Всего запчастей", f"{pos_count} шт.")
+    m1.metric("Всего позиций", f"{pos_count} шт.")
     m2.metric("ИТОГО К ОПЛАТЕ", f"{total_sum:,.2f} руб.".replace(',', ' '))
 
     st.markdown("---")
-    filename = st.text_input("Название файла:", placeholder="Имя_Клиента")
+    filename = st.text_input("Название файла (если нужно):", placeholder="Например: Иван_Бампер_Ауди")
 
-    def create_excel(df):
+    # Функция создания ИДЕАЛЬНОГО Excel
+    def create_beautiful_excel(df):
         workbook = openpyxl.Workbook()
         sheet = workbook.active
         sheet.title = "Накладная"
@@ -111,34 +114,39 @@ with results_container:
         header_border = Border(left=Side(style='medium'), right=Side(style='medium'), top=Side(style='medium'), bottom=Side(style='medium'))
         center = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
+        # Шапка
         sheet['B2'] = "ИП Хачатур"; sheet['B2'].font = Font(name='Arial', size=14, bold=True)
         sheet['B4'] = "Расходная накладная"; sheet['B4'].font = Font(name='Arial', size=14, bold=True)
         sheet['B6'] = "Дата:"; sheet['B6'].font = font_bold
         sheet['C6'] = datetime.now().strftime('%d.%m.%Y'); sheet['C6'].font = font_bold
 
+        # Заголовки
         headers = ["№", "Наименование", "Артикул", "Бренд", "Цена, руб.", "Кол-во", "Сумма, руб."]
         for i, h in enumerate(headers):
             c = sheet.cell(row=8, column=2+i, value=h)
             c.font = font_bold; c.border = header_border; c.alignment = center
 
+        # Строки
         for i, row in df.iterrows():
             r_idx = 9 + i
-            p = to_num(row['Цена, руб.'])
-            q = to_num(row['Кол-во'])
+            p = clean_num(row['Цена, руб.'])
+            q = clean_num(row['Кол-во'])
             
             vals = [i+1, str(row['Наименование']), str(row['Артикул']), str(row['Бренд']), p, q, f"=F{r_idx}*G{r_idx}"]
             for j, v in enumerate(vals):
                 cell = sheet.cell(row=r_idx, column=2+j, value=v)
                 cell.font = font_reg; cell.border = border; cell.alignment = center
-                if j in [4, 6]: cell.number_format = '#,##0.00'
+                if j in [4, 6]: cell.number_format = '#,##0.00' # Денежный формат
             
             sheet.row_dimensions[r_idx].height = 30 if len(str(row['Наименование'])) > 25 else 18
 
+        # Итого
         last_row = 9 + len(df)
         sheet.cell(row=last_row, column=7, value="Итого:").font = font_bold
         res_cell = sheet.cell(row=last_row, column=8, value=f"=SUM(H9:H{last_row-1})")
         res_cell.font = font_bold; res_cell.border = border; res_cell.number_format = '#,##0.00'
 
+        # Авто-ширина
         for col in range(2, 9):
             sheet.column_dimensions[get_column_letter(col)].width = 18
 
@@ -147,11 +155,16 @@ with results_container:
         buf.seek(0)
         return buf
 
-    if st.button("🚀 СГЕНЕРИРОВАТЬ EXCEL", type="primary", use_container_width=True):
+    # Кнопка скачивания и Инструкция
+    if st.button("🚀 СКАЧАТЬ ДЛЯ GOOGLE ТАБЛИЦ (.xlsx)", type="primary", use_container_width=True):
         final_df = edited_df[edited_df["Наименование"].astype(str).str.strip() != ""]
         if final_df.empty:
-            st.error("Сначала добавьте товары!")
+            st.error("⚠️ Сначала добавьте товары!")
         else:
-            file_bytes = create_excel(final_df.reset_index(drop=True))
+            file_bytes = create_beautiful_excel(final_df.reset_index(drop=True))
             fn = f"{filename}.xlsx" if filename else f"Накладная_{datetime.now().strftime('%H%M%S')}.xlsx"
-            st.download_button("📥 СКАЧАТЬ ФАЙЛ", data=file_bytes, file_name=fn, use_container_width=True)
+            st.success("✅ Файл готов!")
+            st.download_button("⬇️ НАЖМИТЕ СЮДА, ЧТОБЫ СОХРАНИТЬ ФАЙЛ", data=file_bytes, file_name=fn, use_container_width=True)
+
+    # Инструкция для пользователя
+    st.info("💡 **Как загрузить в Google Таблицы:** Скачайте файл по кнопке выше, откройте сайт Google Диск (drive.google.com) и просто перетащите файл в окно браузера. Он откроется в формате таблиц со всеми формулами и красивыми рамками!")
