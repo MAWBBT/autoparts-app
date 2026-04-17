@@ -137,13 +137,11 @@ with actions_area:
                 cell = sheet.cell(row=r_idx, column=2+j, value=v)
                 cell.font = font_reg; cell.border = border; cell.alignment = center
                 if j in [4, 6]: cell.number_format = '#,##0.00' # Денежный формат
-            
-            sheet.row_dimensions[r_idx].height = 30 if len(str(row['Наименование'])) > 25 else 18
-
+                    
         # Итого
         last_row = 9 + len(df)
-        sheet.cell(row=last_row, column=7, value="Итого:").font = font_bold
-        cell.alignment = center
+        res_label = sheet.cell(row=last_row, column=7, value="Итого:").font = font_bold
+        res_label.alignment = center; res_label.font = font_bold
         res_cell = sheet.cell(row=last_row, column=8, value=f"=SUM(H9:H{last_row-1})")
         res_cell.font = font_bold; res_cell.alignment = center; res_cell.border = border; res_cell.number_format = '#,##0.00'
 
