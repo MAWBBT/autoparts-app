@@ -32,7 +32,7 @@ with top_form:
             with c3: f_price = st.text_input("Цена (руб.)")
             with c4: f_qty = st.number_input("Кол-во", min_value=1, value=1)
             
-            submit = st.form_submit_button("📥 Добавить в накладную", use_container_width=True)
+            submit = st.form_submit_button("📥 Добавить в накладную", width="stretch")
             
             if submit:
                 if not f_name.strip():
@@ -68,7 +68,7 @@ with table_area:
     col_clear, _ = st.columns([1, 4])
     with col_clear:
         if not st.session_state.main_data.empty:
-            if st.button("🗑️ Очистить таблицу", type="secondary", use_container_width=True):
+            if st.button("🗑️ Очистить таблицу", type="secondary", width="stretch"):
                 st.session_state.main_data = pd.DataFrame(columns=["Наименование", "Артикул", "Бренд", "Цена, руб.", "Кол-во"])
                 if "main_editor" in st.session_state: del st.session_state["main_editor"]
                 st.rerun()
@@ -157,7 +157,7 @@ with actions_area:
         return buf
 
     # Кнопка скачивания и Инструкция
-    if st.button("🚀 СКАЧАТЬ ДЛЯ GOOGLE ТАБЛИЦ (.xlsx)", type="primary", use_container_width=True):
+    if st.button("🚀 СКАЧАТЬ ДЛЯ GOOGLE ТАБЛИЦ (.xlsx)", type="primary", width="stretch"):
         final_df = edited_df[edited_df["Наименование"].astype(str).str.strip() != ""]
         if final_df.empty:
             st.error("⚠️ Сначала добавьте товары!")
@@ -165,4 +165,4 @@ with actions_area:
             file_bytes = create_beautiful_excel(final_df.reset_index(drop=True))
             fn = f"{filename}.xlsx" if filename else f"Накладная_{datetime.now().strftime('%H%M%S')}.xlsx"
             st.success("✅ Файл готов!")
-            st.download_button("⬇️ НАЖМИТЕ СЮДА, ЧТОБЫ СОХРАНИТЬ ФАЙЛ", data=file_bytes, file_name=fn, use_container_width=True)
+            st.download_button("⬇️ НАЖМИТЕ СЮДА, ЧТОБЫ СОХРАНИТЬ ФАЙЛ", data=file_bytes, file_name=fn, width="stretch")
