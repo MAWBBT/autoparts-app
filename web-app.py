@@ -77,7 +77,7 @@ with table_area:
     edited_df = st.data_editor(
         st.session_state.main_data,
         num_rows="dynamic",
-        use_container_width=True,
+        width="stretch",
         key="main_editor"
     )
     # Синхронизация данных
