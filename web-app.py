@@ -143,8 +143,9 @@ with actions_area:
         # Итого
         last_row = 9 + len(df)
         sheet.cell(row=last_row, column=7, value="Итого:").font = font_bold
+        cell.alignment = center
         res_cell = sheet.cell(row=last_row, column=8, value=f"=SUM(H9:H{last_row-1})")
-        res_cell.font = font_bold; res_cell.border = border; res_cell.number_format = '#,##0.00'
+        res_cell.font = font_bold; res_cell.alignment = center; res_cell.border = border; res_cell.number_format = '#,##0.00'
 
         # Авто-ширина
         for col in range(2, 9):
