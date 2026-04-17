@@ -140,7 +140,7 @@ with actions_area:
                     
         # Итого
         last_row = 9 + len(df)
-        res_label = sheet.cell(row=last_row, column=7, value="Итого:").font = font_bold
+        res_label = sheet.cell(row=last_row, column=7, value="Итого:")
         res_label.alignment = center; res_label.font = font_bold
         res_cell = sheet.cell(row=last_row, column=8, value=f"=SUM(H9:H{last_row-1})")
         res_cell.font = font_bold; res_cell.alignment = center; res_cell.border = border; res_cell.number_format = '#,##0.00'
