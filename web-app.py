@@ -7,7 +7,7 @@ from datetime import datetime
 import io
 
 # --- 1. НАСТРОЙКА СТРАНИЦЫ ---
-st.set_page_config(page_title="Накладные ИП Хачатур", page_icon="📝", layout="wide")
+st.set_page_config(page_title="Накладные ИП Саргсян", page_icon="📝", layout="wide")
 st.title("📝 Система накладных")
 
 # --- 2. ИНИЦИАЛИЗАЦИЯ ПАМЯТИ ---
