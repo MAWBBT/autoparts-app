@@ -115,7 +115,7 @@ with actions_area:
         center = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
         # Шапка
-        sheet['B2'] = "ИП Хачатур"; sheet['B2'].font = Font(name='Arial', size=14, bold=True)
+        sheet['B2'] = "ИП Саргсян"; sheet['B2'].font = Font(name='Arial', size=14, bold=True)
         sheet['B4'] = "Расходная накладная"; sheet['B4'].font = Font(name='Arial', size=14, bold=True)
         sheet['B6'] = "Дата:"; sheet['B6'].font = font_bold
         sheet['C6'] = datetime.now().strftime('%d.%m.%Y'); sheet['C6'].font = font_bold
