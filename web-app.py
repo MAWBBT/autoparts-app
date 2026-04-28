@@ -6,13 +6,83 @@ from openpyxl.utils import get_column_letter
 from datetime import datetime
 import io
 
+# Колонки таблицы (используются и в on_change редактора)
+_TABLE_COLUMNS = ["Наименование", "Артикул", "Бренд", "Цена, руб.", "Кол-во"]
+_MAIN_EDITOR_KEY = "main_editor"
+
+
+def _empty_positions_table():
+    return pd.DataFrame(columns=_TABLE_COLUMNS)
+
+
+def _coerce_editor_cell(column: str, value):
+    """Приводит значение из JSON редактора к типу колонки."""
+    if value is None:
+        return None
+    if column == "Кол-во":
+        try:
+            return int(float(value))
+        except (ValueError, TypeError):
+            return value
+    if column == "Цена, руб.":
+        try:
+            return float(str(value).replace(",", ".").replace(" ", ""))
+        except (ValueError, TypeError):
+            return value
+    return value
+
+
+def _on_main_editor_change():
+    """
+    Синхронизация правок без строки вида
+    session_state.main_data = data_editor(session_state.main_data),
+    из‑за которой Streamlit пересоздаёт виджет и правка «съедается» до второго ввода.
+    См. https://github.com/streamlit/streamlit/issues/7749
+    """
+    delta = st.session_state.get(_MAIN_EDITOR_KEY)
+    if not isinstance(delta, dict):
+        return
+
+    df = st.session_state.main_data
+
+    for row_idx, changes in (delta.get("edited_rows") or {}).items():
+        ri = int(row_idx)
+        if ri < 0 or ri >= len(df):
+            continue
+        for col, val in changes.items():
+            if col in df.columns:
+                df.iat[ri, df.columns.get_loc(col)] = _coerce_editor_cell(col, val)
+
+    deleted = delta.get("deleted_rows") or []
+    if deleted:
+        to_drop = [df.index[int(i)] for i in deleted if 0 <= int(i) < len(df)]
+        if to_drop:
+            df.drop(index=to_drop, inplace=True)
+            df.reset_index(drop=True, inplace=True)
+
+    added = delta.get("added_rows") or []
+    if added:
+        base = df.reset_index(drop=True)
+        rows = []
+        for raw in added:
+            if not isinstance(raw, dict):
+                continue
+            rows.append(
+                {c: _coerce_editor_cell(c, raw.get(c)) for c in _TABLE_COLUMNS}
+            )
+        if rows:
+            st.session_state.main_data = pd.concat(
+                [base, pd.DataFrame(rows)], ignore_index=True
+            )
+
+
 # --- 1. НАСТРОЙКА СТРАНИЦЫ ---
 st.set_page_config(page_title="Накладные ИП Саргсян", page_icon="📝", layout="wide")
 st.title("📝 Система накладных")
 
 # --- 2. ИНИЦИАЛИЗАЦИЯ ПАМЯТИ ---
-if 'main_data' not in st.session_state:
-    st.session_state.main_data = pd.DataFrame(columns=["Наименование", "Артикул", "Бренд", "Цена, руб.", "Кол-во"])
+if "main_data" not in st.session_state:
+    st.session_state.main_data = _empty_positions_table()
 
 top_form = st.container()
 st.markdown("---")
@@ -54,8 +124,8 @@ with top_form:
                     st.session_state.main_data = pd.concat([st.session_state.main_data, new_row], ignore_index=True)
                     
                     # Сбрасываем кэш таблицы, чтобы она ровно перерисовалась
-                    if "main_editor" in st.session_state: 
-                        del st.session_state["main_editor"]
+                    if _MAIN_EDITOR_KEY in st.session_state:
+                        del st.session_state[_MAIN_EDITOR_KEY]
                     st.rerun()
 
 # --- 4. НИЖНЯЯ ЧАСТЬ: РЕДАКТОР (ДЛЯ ПК / МАССОВОЙ ВСТАВКИ) ---
@@ -66,19 +136,20 @@ with table_area:
     with col_clear:
         if not st.session_state.main_data.empty:
             if st.button("🗑️ Очистить таблицу", type="secondary", width="stretch"):
-                st.session_state.main_data = pd.DataFrame(columns=["Наименование", "Артикул", "Бренд", "Цена, руб.", "Кол-во"])
-                if "main_editor" in st.session_state: del st.session_state["main_editor"]
+                st.session_state.main_data = _empty_positions_table()
+                if _MAIN_EDITOR_KEY in st.session_state:
+                    del st.session_state[_MAIN_EDITOR_KEY]
                 st.rerun()
 
-    # Сама умная таблица
+    # Правки в session_state подтягиваются в on_change до этого запуска скрипта
+    # (см. _on_main_editor_change и issue Streamlit #7749).
     edited_df = st.data_editor(
         st.session_state.main_data,
         num_rows="dynamic",
         width="stretch",
-        key="main_editor"
+        key=_MAIN_EDITOR_KEY,
+        on_change=_on_main_editor_change,
     )
-    # Синхронизация данных
-    st.session_state.main_data = edited_df
 
 # --- 5. ИТОГИ И ГЕНЕРАЦИЯ EXCEL ---
 with actions_area:
