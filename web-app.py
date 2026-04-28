@@ -41,7 +41,7 @@ with top_form:
                     # Очистка цены от пробелов и запятых
                     try:
                         p_val = float(f_price.replace(',', '.').replace(' ', '').strip()) if f_price else 0.0
-                    except:
+                    except (ValueError, TypeError):
                         p_val = 0.0
                     
                     new_row = pd.DataFrame([{
@@ -51,9 +51,6 @@ with top_form:
                         "Цена, руб.": p_val,
                         "Кол-во": f_qty
                     }])
-                    
-                    # Забираем текущие данные из таблицы и добавляем новую строку
-                    current_data = st.session_state.get("main_editor", edited_df if 'edited_df' in locals() else st.session_state.main_data)
                     st.session_state.main_data = pd.concat([st.session_state.main_data, new_row], ignore_index=True)
                     
                     # Сбрасываем кэш таблицы, чтобы она ровно перерисовалась
@@ -86,8 +83,10 @@ with table_area:
 # --- 5. ИТОГИ И ГЕНЕРАЦИЯ EXCEL ---
 with actions_area:
     def clean_num(val):
-        try: return float(str(val).replace(',', '.').replace(' ', ''))
-        except: return 0.0
+        try:
+            return float(str(val).replace(',', '.').replace(' ', ''))
+        except (ValueError, TypeError):
+            return 0.0
 
     calc_df = edited_df.copy()
     calc_df['total'] = calc_df['Цена, руб.'].apply(clean_num) * calc_df['Кол-во'].apply(clean_num)
@@ -154,13 +153,23 @@ with actions_area:
         buf.seek(0)
         return buf
 
-    # Кнопка скачивания и Инструкция
-    if st.button("🚀 СКАЧАТЬ ДЛЯ GOOGLE ТАБЛИЦ (.xlsx)", type="primary", width="stretch"):
-        final_df = edited_df[edited_df["Наименование"].astype(str).str.strip() != ""]
-        if final_df.empty:
-            st.error("⚠️ Сначала добавьте товары!")
-        else:
-            file_bytes = create_beautiful_excel(final_df.reset_index(drop=True))
-            fn = f"{filename}.xlsx" if filename else f"Накладная_{datetime.now().strftime('%H%M%S')}.xlsx"
-            st.success("✅ Файл готов!")
-            st.download_button("⬇️ НАЖМИТЕ СЮДА, ЧТОБЫ СОХРАНИТЬ ФАЙЛ", data=file_bytes, file_name=fn, width="stretch")
+    final_df = edited_df[edited_df["Наименование"].astype(str).str.strip() != ""]
+    name_stripped = (filename or "").strip()
+    fn = f"{name_stripped}.xlsx" if name_stripped else f"Накладная_{datetime.now().strftime('%H%M%S')}.xlsx"
+    excel_payload = (
+        create_beautiful_excel(final_df.reset_index(drop=True)).getvalue()
+        if not final_df.empty
+        else b""
+    )
+    st.download_button(
+        "🚀 Скачать для Google Таблиц (.xlsx)",
+        data=excel_payload,
+        file_name=fn,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        type="primary",
+        width="stretch",
+        disabled=final_df.empty,
+        help="Добавьте хотя бы одну строку с наименованием в таблице выше."
+        if final_df.empty
+        else None,
+    )
