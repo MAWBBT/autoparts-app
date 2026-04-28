@@ -4,6 +4,7 @@ import openpyxl
 from openpyxl.styles import Border, Side, Alignment, Font
 from openpyxl.utils import get_column_letter
 from datetime import datetime
+import hashlib
 import io
 
 # Колонки таблицы (используются и в on_change редактора)
@@ -170,7 +171,15 @@ with actions_area:
     m2.metric("ИТОГО К ОПЛАТЕ", f"{total_sum:,.2f} руб.".replace(',', ' '))
 
     st.markdown("---")
-    filename = st.text_input("Название файла (если нужно):", placeholder="Например: Иван_Бампер_Ауди")
+    _EXPORT_NAME_KEY = "_export_xlsx_basename"
+    st.text_input(
+        "Название файла (если нужно):",
+        placeholder="Например: Иван_Бампер_Ауди",
+        key=_EXPORT_NAME_KEY,
+        help="После ввода имени нажмите Enter или Tab — так оно гарантированно попадёт в имя "
+        "скачиваемого файла при первом нажатии «Скачать».",
+    )
+    name_stripped = (st.session_state.get(_EXPORT_NAME_KEY) or "").strip()
 
     # Функция создания ИДЕАЛЬНОГО Excel
     def create_beautiful_excel(df):
@@ -225,8 +234,9 @@ with actions_area:
         return buf
 
     final_df = edited_df[edited_df["Наименование"].astype(str).str.strip() != ""]
-    name_stripped = (filename or "").strip()
     fn = f"{name_stripped}.xlsx" if name_stripped else f"Накладная_{datetime.now().strftime('%H%M%S')}.xlsx"
+    # Новый key при смене имени — иначе браузер может отдать файл со старым file_name из прошлого рендера.
+    _dl_key = "xlsx_dl_" + hashlib.sha256(name_stripped.encode("utf-8")).hexdigest()[:16]
     excel_payload = (
         create_beautiful_excel(final_df.reset_index(drop=True)).getvalue()
         if not final_df.empty
@@ -239,6 +249,7 @@ with actions_area:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         type="primary",
         width="stretch",
+        key=_dl_key,
         disabled=final_df.empty,
         help="Добавьте хотя бы одну строку с наименованием в таблице выше."
         if final_df.empty
