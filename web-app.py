@@ -98,22 +98,6 @@ if "main_data" not in st.session_state and isinstance(persist.get("main_data"), 
 if "main_data" not in st.session_state:
     st.session_state.main_data = _empty_positions_table()
 
-_FORM_KEYS = {
-    "f_name": "",
-    "f_art": "",
-    "f_brand": "",
-    "f_price": "",
-    "f_qty": 1,
-}
-persist_form = persist.get("form")
-if isinstance(persist_form, dict):
-    for k, default in _FORM_KEYS.items():
-        if k not in st.session_state and k in persist_form:
-            st.session_state[k] = persist_form.get(k, default)
-for k, default in _FORM_KEYS.items():
-    if k not in st.session_state:
-        st.session_state[k] = default
-
 top_form = st.container()
 st.markdown("---")
 table_area = st.container()
@@ -123,14 +107,14 @@ actions_area = st.container()
 # --- 3. ВЕРХНЯЯ ЧАСТЬ: ФОРМА ВВОДА (ДЛЯ ТЕЛЕФОНА) ---
 with top_form:
     with st.expander("➕ ДОБАВИТЬ ПОЗИЦИЮ", expanded=True):
-        with st.form("mobile_form", clear_on_submit=False):
-            f_name = st.text_input("Наименование запчасти *", key="f_name")
+        with st.form("mobile_form", clear_on_submit=True):
+            f_name = st.text_input("Наименование запчасти *")
             
             c1, c2, c3, c4 = st.columns([3, 2, 2, 1])
-            with c1: f_art = st.text_input("Артикул", key="f_art")
-            with c2: f_brand = st.text_input("Бренд", key="f_brand")
-            with c3: f_price = st.text_input("Цена (руб.)", key="f_price")
-            with c4: f_qty = st.number_input("Кол-во", min_value=1, value=1, key="f_qty")
+            with c1: f_art = st.text_input("Артикул")
+            with c2: f_brand = st.text_input("Бренд")
+            with c3: f_price = st.text_input("Цена (руб.)")
+            with c4: f_qty = st.number_input("Кол-во", min_value=1, value=1)
             
             submit = st.form_submit_button("📥 Добавить в накладную", width="stretch")
             
@@ -287,6 +271,3 @@ with actions_area:
         if final_df.empty
         else None,
     )
-
-# --- 6. СОХРАНЕНИЕ ПОЛЕЙ ФОРМЫ МЕЖДУ F5 ---
-persist["form"] = {k: st.session_state.get(k) for k in _FORM_KEYS.keys()}
