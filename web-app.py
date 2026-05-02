@@ -87,8 +87,8 @@ def _on_main_editor_change():
 
 
 # --- 1. НАСТРОЙКА СТРАНИЦЫ ---
-st.set_page_config(page_title="Накладные ИП Саргсян", page_icon="📝", layout="wide")
-st.title("📝 Система накладных")
+st.set_page_config(page_title="Создание накладных", page_icon="🛠️", layout="wide")
+st.title("Создание накладных")
 
 # --- 2. ИНИЦИАЛИЗАЦИЯ ПАМЯТИ ---
 persist = _persist_store()
@@ -106,7 +106,7 @@ actions_area = st.container()
 
 # --- 3. ВЕРХНЯЯ ЧАСТЬ: ФОРМА ВВОДА (ДЛЯ ТЕЛЕФОНА) ---
 with top_form:
-    with st.expander("➕ ДОБАВИТЬ ПОЗИЦИЮ", expanded=True):
+    with st.expander("ДОБАВЛЕНИЕ ПОЗИЦИЙ", expanded=True):
         with st.form("mobile_form", clear_on_submit=True):
             f_name = st.text_input("Наименование запчасти *")
             
@@ -116,7 +116,7 @@ with top_form:
             with c3: f_price = st.text_input("Цена (руб.)")
             with c4: f_qty = st.number_input("Кол-во", min_value=1, value=1)
             
-            submit = st.form_submit_button("📥 Добавить в накладную", width="stretch")
+            submit = st.form_submit_button("Добавить в накладную", width="stretch")
             
             if submit:
                 if not f_name.strip():
@@ -145,12 +145,12 @@ with top_form:
 
 # --- 4. НИЖНЯЯ ЧАСТЬ: РЕДАКТОР (ДЛЯ ПК / МАССОВОЙ ВСТАВКИ) ---
 with table_area:
-    st.markdown("### 📋 Список добавленных позиций")
+    st.markdown("### Список добавленных позиций")
     
     col_clear, _ = st.columns([1, 4])
     with col_clear:
         if not st.session_state.main_data.empty:
-            if st.button("🗑️ Очистить таблицу", type="secondary", width="stretch"):
+            if st.button("Очистить таблицу", type="secondary", width="stretch"):
                 st.session_state.main_data = _empty_positions_table()
                 persist["main_data"] = st.session_state.main_data.copy(deep=True)
                 if _MAIN_EDITOR_KEY in st.session_state:
@@ -193,19 +193,19 @@ with actions_area:
     v1, v2 = st.columns(2)
     with v1:
         st.text_input(
-            "Автомобиль (в Excel: подпись D3, значение E3):",
-            placeholder="Например: Toyota Camry 2.5",
+            "Автомобиль:",
+            placeholder="Например: Range Rover IV",
             key=_EXPORT_VEHICLE_KEY,
         )
     with v2:
         st.text_input(
-            "Гос. номер (в Excel: подпись D4, значение E4):",
-            placeholder="А123БВ777",
+            "Гос. номер:",
+            placeholder="Т700ОО150",
             key=_EXPORT_PLATE_KEY,
         )
     st.text_input(
-        "Название файла (если нужно):",
-        placeholder="Например: Иван_Бампер_Ауди",
+        "Название файла:",
+        placeholder="Например: 02.05.2026-Range Rover 4",
         key=_EXPORT_NAME_KEY,
         help="После ввода имени нажмите Enter или Tab — так оно гарантированно попадёт в имя "
         "скачиваемого файла при первом нажатии «Скачать».",
@@ -233,19 +233,23 @@ with actions_area:
         sheet['B6'] = "Дата:"; sheet['B6'].font = font_bold
         sheet['C6'] = datetime.now().strftime('%d.%m.%Y'); sheet['C6'].font = font_bold
 
+        # Одна строка без переноса (wrap_text=False); ширина E подстраивается под текст
+        align_vehicle_label = Alignment(horizontal='right', vertical='center', wrap_text=False)
+        align_vehicle_value = Alignment(horizontal='left', vertical='center', wrap_text=False)
+
         sheet['D3'] = "Автомобиль:"
         sheet['D3'].font = font_vehicle_block
-        sheet['D3'].alignment = Alignment(horizontal='right', vertical='center', wrap_text=True)
+        sheet['D3'].alignment = align_vehicle_label
         sheet['E3'] = vehicle_name or ""
         sheet['E3'].font = font_vehicle_block
-        sheet['E3'].alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+        sheet['E3'].alignment = align_vehicle_value
 
         sheet['D4'] = "Гос. номер:"
         sheet['D4'].font = font_vehicle_block
-        sheet['D4'].alignment = Alignment(horizontal='right', vertical='center', wrap_text=True)
+        sheet['D4'].alignment = align_vehicle_label
         sheet['E4'] = vehicle_plate or ""
         sheet['E4'].font = font_vehicle_block
-        sheet['E4'].alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+        sheet['E4'].alignment = align_vehicle_value
 
         # Заголовки
         headers = ["№", "Наименование", "Артикул", "Бренд", "Цена, руб.", "Кол-во", "Сумма, руб."]
@@ -276,7 +280,11 @@ with actions_area:
         for col in range(2, 9):
             sheet.column_dimensions[get_column_letter(col)].width = 18
         sheet.column_dimensions['D'].width = 18
-        sheet.column_dimensions['E'].width = 28
+        _vn = vehicle_name or ""
+        _vp = vehicle_plate or ""
+        # Грубая оценка ширины колонки в символах Excel для одной строки Arial 14
+        _ew = max(28.0, min(100.0, max(len(_vn), len(_vp)) * 1.15 + 4.0))
+        sheet.column_dimensions['E'].width = _ew
 
         buf = io.BytesIO()
         workbook.save(buf)
@@ -297,7 +305,7 @@ with actions_area:
         else b""
     )
     st.download_button(
-        "🚀 Скачать для Google Таблиц (.xlsx)",
+        "Скачать Таблицу (.xlsx)",
         data=excel_payload,
         file_name=fn,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
