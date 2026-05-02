@@ -244,19 +244,18 @@ with actions_area:
         sheet['C6'] = datetime.now().strftime('%d.%m.%Y'); sheet['C6'].font = font_bold
 
         # Одна строка без переноса (wrap_text=False); ширина E подстраивается под текст
-        align_vehicle_label = Alignment(horizontal='right', vertical='center', wrap_text=False)
         align_vehicle_value = Alignment(horizontal='left', vertical='center', wrap_text=False)
 
         sheet['D3'] = "Автомобиль:"
         sheet['D3'].font = font_vehicle_block
-        sheet['D3'].alignment = align_vehicle_label
+        sheet['D3'].alignment = align_vehicle_value
         sheet['E3'] = vehicle_name or ""
         sheet['E3'].font = font_vehicle_block
         sheet['E3'].alignment = align_vehicle_value
 
         sheet['D4'] = "Гос. номер:"
         sheet['D4'].font = font_vehicle_block
-        sheet['D4'].alignment = align_vehicle_label
+        sheet['D4'].alignment = align_vehicle_value
         sheet['E4'] = vehicle_plate or ""
         sheet['E4'].font = font_vehicle_block
         sheet['E4'].alignment = align_vehicle_value
