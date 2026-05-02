@@ -188,6 +188,21 @@ with actions_area:
 
     st.markdown("---")
     _EXPORT_NAME_KEY = "_export_xlsx_basename"
+    _EXPORT_VEHICLE_KEY = "_export_vehicle_model"
+    _EXPORT_PLATE_KEY = "_export_vehicle_plate"
+    v1, v2 = st.columns(2)
+    with v1:
+        st.text_input(
+            "Автомобиль (в Excel: подпись D3, значение E3):",
+            placeholder="Например: Toyota Camry 2.5",
+            key=_EXPORT_VEHICLE_KEY,
+        )
+    with v2:
+        st.text_input(
+            "Гос. номер (в Excel: подпись D4, значение E4):",
+            placeholder="А123БВ777",
+            key=_EXPORT_PLATE_KEY,
+        )
     st.text_input(
         "Название файла (если нужно):",
         placeholder="Например: Иван_Бампер_Ауди",
@@ -196,15 +211,18 @@ with actions_area:
         "скачиваемого файла при первом нажатии «Скачать».",
     )
     name_stripped = (st.session_state.get(_EXPORT_NAME_KEY) or "").strip()
+    vehicle_stripped = (st.session_state.get(_EXPORT_VEHICLE_KEY) or "").strip()
+    plate_stripped = (st.session_state.get(_EXPORT_PLATE_KEY) or "").strip()
 
     # Функция создания ИДЕАЛЬНОГО Excel
-    def create_beautiful_excel(df):
+    def create_beautiful_excel(df, vehicle_name: str = "", vehicle_plate: str = ""):
         workbook = openpyxl.Workbook()
         sheet = workbook.active
         sheet.title = "Накладная"
         
         font_bold = Font(name='Arial', size=12, bold=True)
         font_reg = Font(name='Arial', size=12)
+        font_vehicle_block = Font(name='Arial', size=14, bold=True)
         border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
         header_border = Border(left=Side(style='medium'), right=Side(style='medium'), top=Side(style='medium'), bottom=Side(style='medium'))
         center = Alignment(horizontal='center', vertical='center', wrap_text=True)
@@ -214,6 +232,20 @@ with actions_area:
         sheet['B4'] = "Расходная накладная"; sheet['B4'].font = Font(name='Arial', size=14, bold=True)
         sheet['B6'] = "Дата:"; sheet['B6'].font = font_bold
         sheet['C6'] = datetime.now().strftime('%d.%m.%Y'); sheet['C6'].font = font_bold
+
+        sheet['D3'] = "Автомобиль:"
+        sheet['D3'].font = font_vehicle_block
+        sheet['D3'].alignment = Alignment(horizontal='right', vertical='center', wrap_text=True)
+        sheet['E3'] = vehicle_name or ""
+        sheet['E3'].font = font_vehicle_block
+        sheet['E3'].alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+
+        sheet['D4'] = "Гос. номер:"
+        sheet['D4'].font = font_vehicle_block
+        sheet['D4'].alignment = Alignment(horizontal='right', vertical='center', wrap_text=True)
+        sheet['E4'] = vehicle_plate or ""
+        sheet['E4'].font = font_vehicle_block
+        sheet['E4'].alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
 
         # Заголовки
         headers = ["№", "Наименование", "Артикул", "Бренд", "Цена, руб.", "Кол-во", "Сумма, руб."]
@@ -243,6 +275,8 @@ with actions_area:
         # Авто-ширина
         for col in range(2, 9):
             sheet.column_dimensions[get_column_letter(col)].width = 18
+        sheet.column_dimensions['D'].width = 18
+        sheet.column_dimensions['E'].width = 28
 
         buf = io.BytesIO()
         workbook.save(buf)
@@ -254,7 +288,11 @@ with actions_area:
     # Новый key при смене имени — иначе браузер может отдать файл со старым file_name из прошлого рендера.
     _dl_key = "xlsx_dl_" + hashlib.sha256(name_stripped.encode("utf-8")).hexdigest()[:16]
     excel_payload = (
-        create_beautiful_excel(final_df.reset_index(drop=True)).getvalue()
+        create_beautiful_excel(
+            final_df.reset_index(drop=True),
+            vehicle_name=vehicle_stripped,
+            vehicle_plate=plate_stripped,
+        ).getvalue()
         if not final_df.empty
         else b""
     )
