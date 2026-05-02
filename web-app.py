@@ -106,42 +106,52 @@ actions_area = st.container()
 
 # --- 3. ВЕРХНЯЯ ЧАСТЬ: ФОРМА ВВОДА (ДЛЯ ТЕЛЕФОНА) ---
 with top_form:
-    with st.expander("ДОБАВЛЕНИЕ ПОЗИЦИЙ", expanded=True):
-        with st.form("mobile_form", clear_on_submit=True):
-            f_name = st.text_input("Наименование запчасти *")
-            
-            c1, c2, c3, c4 = st.columns([3, 2, 2, 1])
-            with c1: f_art = st.text_input("Артикул")
-            with c2: f_brand = st.text_input("Бренд")
-            with c3: f_price = st.text_input("Цена (руб.)")
-            with c4: f_qty = st.number_input("Кол-во", min_value=1, value=1)
-            
-            submit = st.form_submit_button("Добавить в накладную", width="stretch")
-            
-            if submit:
-                if not f_name.strip():
-                    st.error("Пожалуйста, введите наименование!")
-                else:
-                    # Очистка цены от пробелов и запятых
-                    try:
-                        p_val = float(f_price.replace(',', '.').replace(' ', '').strip()) if f_price else 0.0
-                    except (ValueError, TypeError):
-                        p_val = 0.0
-                    
-                    new_row = pd.DataFrame([{
-                        "Наименование": f_name.strip(),
-                        "Артикул": f_art.strip(),
-                        "Бренд": f_brand.strip(),
-                        "Цена, руб.": p_val,
-                        "Кол-во": f_qty
-                    }])
-                    st.session_state.main_data = pd.concat([st.session_state.main_data, new_row], ignore_index=True)
-                    persist["main_data"] = st.session_state.main_data.copy(deep=True)
-                    
-                    # Сбрасываем кэш таблицы, чтобы она ровно перерисовалась
-                    if _MAIN_EDITOR_KEY in st.session_state:
-                        del st.session_state[_MAIN_EDITOR_KEY]
-                    st.rerun()
+    st.markdown("### Добавление позиций")
+    with st.form("mobile_form", clear_on_submit=True):
+        f_name = st.text_input("Наименование запчасти *")
+
+        c1, c2, c3, c4 = st.columns([3, 2, 2, 1])
+        with c1:
+            f_art = st.text_input("Артикул")
+        with c2:
+            f_brand = st.text_input("Бренд")
+        with c3:
+            f_price = st.text_input("Цена (руб.)")
+        with c4:
+            f_qty = st.number_input("Кол-во", min_value=1, value=1)
+
+        submit = st.form_submit_button("Добавить в накладную", width="stretch")
+
+        if submit:
+            if not f_name.strip():
+                st.error("Пожалуйста, введите наименование!")
+            else:
+                # Очистка цены от пробелов и запятых
+                try:
+                    p_val = float(f_price.replace(',', '.').replace(' ', '').strip()) if f_price else 0.0
+                except (ValueError, TypeError):
+                    p_val = 0.0
+
+                new_row = pd.DataFrame(
+                    [
+                        {
+                            "Наименование": f_name.strip(),
+                            "Артикул": f_art.strip(),
+                            "Бренд": f_brand.strip(),
+                            "Цена, руб.": p_val,
+                            "Кол-во": f_qty,
+                        }
+                    ]
+                )
+                st.session_state.main_data = pd.concat(
+                    [st.session_state.main_data, new_row], ignore_index=True
+                )
+                persist["main_data"] = st.session_state.main_data.copy(deep=True)
+
+                # Сбрасываем кэш таблицы, чтобы она ровно перерисовалась
+                if _MAIN_EDITOR_KEY in st.session_state:
+                    del st.session_state[_MAIN_EDITOR_KEY]
+                st.rerun()
 
 # --- 4. НИЖНЯЯ ЧАСТЬ: РЕДАКТОР (ДЛЯ ПК / МАССОВОЙ ВСТАВКИ) ---
 with table_area:
