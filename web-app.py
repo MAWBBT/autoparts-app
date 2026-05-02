@@ -194,7 +194,7 @@ with actions_area:
     with v1:
         st.text_input(
             "Автомобиль:",
-            placeholder="Например: Range Rover IV",
+            placeholder="Например: Range Rover 4",
             key=_EXPORT_VEHICLE_KEY,
         )
     with v2:
